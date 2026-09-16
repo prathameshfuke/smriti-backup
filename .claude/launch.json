@@ -8,9 +8,25 @@
     {
       "name": "smriti-dev-start",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "cwd": "smriti",
       "port": 3000
+    },
+    {
+      "name": "smriti-secure-storage",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3100"
+      ],
+      "cwd": ".claude/worktrees/secure-storage-impl/smriti",
+      "port": 3100
     }
   ]
 }
