@@ -20,7 +20,7 @@ export const ENCRYPTED_FIELDS: Readonly<Record<string, readonly string[]>> = {
   aiConversationLog: ['question', 'answer'],
   reminiscenceQuizzes: ['questions'],
   familyMessages: ['text', 'senderName', 'senderRelation', 'photoUrl'],
-  reminderSchedules: ['label'],
+  reminderSchedules: ['label', 'facilityName', 'locationNotes', 'bringNotes'],
   telemetryEvents: ['metadata'],
   syncQueue: ['payload'],
   deviceTrust: ['signature'],
