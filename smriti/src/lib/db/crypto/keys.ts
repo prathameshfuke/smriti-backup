@@ -88,7 +88,13 @@ function warnRawKey() {
  * read-write transactions on the same store one after another, even across
  * tabs, so re-reading inside one means two tabs opening at once end up with a
  * single key instead of each overwriting the other's.
+ *
+ * If the other tab's key doesn't open here (after one retry), it is replaced
+ * only by the same compare-and-write, so a key a third tab stored in the
+ * meantime is kept and tried instead of being overwritten.
  */
+const MAX_CLAIM_ATTEMPTS = 3;
+
 async function claimKey(
   db: Dexie,
   keyring: Keyring,
@@ -96,19 +102,21 @@ async function claimKey(
   candidate: KeyringEntry,
   key: Uint8Array,
 ): Promise<LoadedKey> {
-  const winner = await db.transaction('rw', keyring, async () => {
-    const current = await keyring.get(KEYRING_ID);
-    // Someone else stored or replaced the key since we looked: use theirs.
-    if (current && current.createdAt !== replacing?.createdAt) return current;
-    await keyring.put(candidate, KEYRING_ID);
-    return null;
-  });
-  if (!winner) return { key, entry: candidate, created: true };
-  const theirs = await unsealKey(winner);
-  if (theirs) return { key: theirs, entry: winner, created: false };
-  // Theirs doesn't open here either; don't leave the database unopenable.
-  await keyring.put(candidate, KEYRING_ID);
-  return { key, entry: candidate, created: true };
+  let expected = replacing;
+  for (let attempt = 0; attempt < MAX_CLAIM_ATTEMPTS; attempt++) {
+    const winner = await db.transaction('rw', keyring, async () => {
+      const current = await keyring.get(KEYRING_ID);
+      // Someone else stored or replaced the key since we looked: use theirs.
+      if (current && current.createdAt !== expected?.createdAt) return current;
+      await keyring.put(candidate, KEYRING_ID);
+      return null;
+    });
+    if (!winner) return { key, entry: candidate, created: true };
+    const theirs = (await unsealKey(winner)) ?? (await unsealKey(winner));
+    if (theirs) return { key: theirs, entry: winner, created: false };
+    expected = winner;
+  }
+  throw new StorageDecryptError('keyring');
 }
 
 async function sealKey(key: Uint8Array<ArrayBuffer>): Promise<KeyringEntry> {
