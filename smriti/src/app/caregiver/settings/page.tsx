@@ -189,12 +189,14 @@ export default function CaregiverSettingsPage() {
    * so the PIN's freshness check must not treat this session as still live.
    */
   const logOut = async () => {
-    await createBrowserClient().auth.signOut();
     // Best-effort flush so this device's currentDifficulty/progress reaches
     // the server before the local copy is wiped below — otherwise the next
     // login's server pull has nothing but a stale currentDifficulty to hand
-    // back, and the caregiver sees the patient's level reset (#19).
+    // back, and the caregiver sees the patient's level reset (#19). Must run
+    // BEFORE signOut(): syncAllPatients() needs the still-live session to
+    // authenticate the request, and signOut() clears it.
     await syncAllPatients().catch(() => {});
+    await createBrowserClient().auth.signOut();
     await db.transaction('rw', db.caregivers, db.patients, db.reminderSchedules, async () => {
       await db.caregivers.clear();
       await db.patients.clear();
