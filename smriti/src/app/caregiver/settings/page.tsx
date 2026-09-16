@@ -14,6 +14,7 @@ import PageHeader from '@/components/ui/PageHeader';
 import Panel, { buttonClass } from '@/components/ui/Panel';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { db, SmritiDB } from '@/lib/db/schema';
+import { syncAllPatients } from '@/lib/db/sync';
 import { useCaregiverStore } from '@/stores/caregiverStore';
 import { usePatientStore } from '@/stores/patientStore';
 import { useSettingsStore } from '@/stores/settingsStore';
@@ -189,6 +190,11 @@ export default function CaregiverSettingsPage() {
    */
   const logOut = async () => {
     await createBrowserClient().auth.signOut();
+    // Best-effort flush so this device's currentDifficulty/progress reaches
+    // the server before the local copy is wiped below — otherwise the next
+    // login's server pull has nothing but a stale currentDifficulty to hand
+    // back, and the caregiver sees the patient's level reset (#19).
+    await syncAllPatients().catch(() => {});
     await db.transaction('rw', db.caregivers, db.patients, db.reminderSchedules, async () => {
       await db.caregivers.clear();
       await db.patients.clear();
