@@ -403,11 +403,7 @@ smriti/
 
 ```bash
 git clone https://github.com/prathameshfuke/smriti-backup.git
-<<<<<<< ours
 cd smriti-backup/smriti
-=======
-cd smriti/smriti
->>>>>>> theirs
 npm install
 cp .env.local.example .env.local
 # fill in the keys below, then:
